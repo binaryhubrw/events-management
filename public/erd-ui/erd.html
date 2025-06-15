@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Management System - Entity Relationship Diagram</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden; /* Prevent horizontal scroll due to grid layout */
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative; /* Needed for absolute positioning of canvas */
+            min-height: 800px; /* Give some initial height for positioning */
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin: 0 10px;
+        }
+
+        .controls button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .controls button.active {
+            background-color: #27ae60;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .erd-container {
+            position: relative; /* Changed from grid to relative for absolute positioning of tables */
+            min-height: 600px; /* Ensure container has height for tables */
+            padding: 20px;
+            z-index: 10; /* Ensure tables are above canvas */
+        }
+
+        #erdCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5; /* Below the tables */
+            pointer-events: none; /* Allows clicks to pass through to tables */
+        }
+        
+        .table {
+            background: #ffffff;
+            border: 3px solid #3498db;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, opacity 0.3s ease, height 0.3s ease; /* Added height transition */
+            position: absolute; /* Changed to absolute for drag and drop */
+            z-index: 10; /* Above the canvas */
+            cursor: grab; /* Indicate draggable */
+            opacity: 1; /* Default visible */
+            pointer-events: auto; /* Default clickable */
+            overflow: hidden; /* For collapsing */
+            width: 300px; /* Fixed width for consistency */
+            min-height: 50px; /* Minimum height for collapsed state */
+        }
+        
+        .table:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(52, 152, 219, 0.3);
+            border-color: #27ae60; /* Highlight border on hover */
+        }
+
+        /* Class for highlighting connected tables */
+        .table.highlight-table {
+            border-color: #e74c3c; /* Red border for highlighted connections */
+            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.4);
+        }
+
+        /* Class for hiding tables in "show only related" mode or dropdown filter */
+        .table.hidden-by-filter {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Collapsed state for tables */
+        .table.collapsed {
+            height: 180px; /* Height of header only */
+            min-height: 50px;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+            border-radius: 7px 7px 0 0;
+            text-align: center;
+            cursor: grab; /* Indicate draggable */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-right: 10px; /* Space for collapse icon */
+        }
+
+        .table-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .collapse-toggle-button, .remove-table-icon {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 0.9em; /* Smaller font for button text */
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        .collapse-toggle-button:hover, .remove-table-icon:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .remove-table-icon {
+            font-size: 1.2em; /* Larger icon */
+            padding: 2px 5px;
+            color: #ffdddd; /* Lighter red for icon */
+        }
+        .remove-table-icon:hover {
+            color: #ffaaaa;
+        }
+        
+        .table-body {
+            padding: 0;
+            transition: max-height 0.3s ease-out; /* Smooth transition for collapse */
+            max-height: 1000px; /* Arbitrarily large value for expanded state */
+        }
+
+        .table.collapsed .table-body {
+            max-height: 0;
+        }
+        
+        .field {
+            padding: 8px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+            position: relative; /* For tooltip and add icon positioning */
+        }
+        
+        .field:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .field:last-child {
+            border-bottom: none;
+        }
+        
+        .field-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .field-type {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        
+        .pk {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .fk {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        /* Tooltip for JSON/Enum fields */
+        .field-tooltip {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            z-index: 20; /* Above everything */
+            bottom: 100%; /* Position above the field */
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 5px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+
+        .field:hover .field-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Add icon for JSON/Enum fields */
+        .add-icon {
+            font-size: 0.9em;
+            color: #27ae60;
+            margin-left: 5px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .field:hover .add-icon {
+            opacity: 1;
+        }
+        
+        .relationships {
+            margin-top: 50px;
+        }
+        
+        .relationship-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .relationship-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .relationship-title::before {
+            content: "🔗";
+            margin-right: 10px;
+        }
+        
+        .relationship-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .relationship {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+        
+        .relationship:hover {
+            border-color: #3498db;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+        }
+        
+        .rel-from, .rel-to {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        
+        .rel-type {
+            color: #27ae60;
+            font-weight: 500;
+            margin: 0 10px;
+        }
+        
+        .legend {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 40px;
+        }
+        
+        .legend h3 {
+            margin-top: 0;
+            color: #ecf0f1;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .legend-item span {
+            margin-right: 15px;
+        }
+        
+        /* Styles for the new dropdown */
+        .connections-dropdown {
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1000; /* Ensure it's on top */
+            min-width: 200px;
+            padding: 0; /* Removed padding to allow header/footer to control it */
+            list-style: none;
+            margin: 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+
+        .connections-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .connections-dropdown li {
+            padding: 8px 15px;
+            cursor: pointer;
+            color: #333;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .connections-dropdown li:hover {
+            background-color: #e9e9e9;
+        }
+
+        .connections-dropdown li .cardinality {
+            font-size: 0.8em;
+            color: #666;
+            background-color: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .dropdown-header {
+            padding: 8px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #eef;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-close-icon {
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #c0392b; /* Red for close */
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .erd-container {
+                /* No grid template for mobile when using absolute positioning */
+                /* Tables will stack or be manually positioned */
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎪 Event Management System - Entity Relationship Diagram</h1>
+        
+        <div class="controls">
+            <button id="toggleRelatedMode">Show Only Related Tables: OFF</button>
+            <button id="resetLayout">Reset Layout</button>
+        </div>
+
+        <canvas id="erdCanvas"></canvas> 
+
+        <div class="erd-container" id="erdContainer">
+            <div class="table collapsed" id="table-users" data-connected-tables="roles,organizations,events,registrations,feedback,venues,invoices,budgets,eventbooking,notifications">
+                <div class="table-header">
+                    <span>👥 Users</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">userId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">username</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">firstName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">lastName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">email</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">password</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">phoneNumber</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">roleId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizationId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">bio</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">profilePictureURL</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">preferredLanguage</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">timezone</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">emailNotificationsEnabled</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">smsNotificationsEnabled</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">socialMediaLinks</span>
+                        <div>
+                            <span class="field-type">json</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">{"facebook": "...", "twitter": "..."}</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">dateOfBirth</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">gender</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">addressLine1</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">addressLine2</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">city</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">stateProvince</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">postalCode</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">country</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-roles" data-connected-tables="users">
+                <div class="table-header">
+                    <span>🔑 Roles</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">roleId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">roleName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">permissions</span>
+                        <div>
+                            <span class="field-type">json</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">{"read": true, "write": false}</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-organizations" data-connected-tables="users,events,eventbooking">
+                <div class="table-header">
+                    <span>🏢 Organizations</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">organizationId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizationName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">contactEmail</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">contactPhone</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isExternal</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">address</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizationType</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-venues" data-connected-tables="users,events,eventbooking,registrations">
+                <div class="table-header">
+                    <span>🏛️ Venues</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">venueId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">venueName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">capacity</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">location</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">latitude</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">longitude</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">googleMapsLink</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">managerId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isAvailable</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isBooked</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">amenities</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">venueType</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">contactPerson</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">contactEmail</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">contactPhone</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">websiteURL</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-events" data-connected-tables="users,venues,eventbooking,registrations,invoices,feedback,eventresources,budgets,organizations,notifications">
+                <div class="table-header">
+                    <span>🎉 Events</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventTitle</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventCategory</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventType</span>
+                        <div>
+                            <span class="field-type">enum</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip" data-enum-values='["Conference", "Workshop", "Concert"]'>["Conference", "Workshop", "Concert"]</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">maxAttendees</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">status</span>
+                        <div>
+                            <span class="field-type">enum</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip" data-enum-values='["Upcoming", "Active", "Completed", "Cancelled"]'>["Upcoming", "Active", "Completed", "Cancelled"]</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isFeatured</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">qrCode</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">imageURL</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizerId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">venueId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">createdAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">updatedAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">deletedAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventStartTime</span>
+                        <span class="field-type">time</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventEndTime</span>
+                        <span class="field-type">time</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">ticketingDetails</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">refundPolicy</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">dressCode</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">ageRestriction</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">tags</span>
+                        <div>
+                            <span class="field-type">json</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">["Music", "Tech", "Art"]</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">websiteURL</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">hashtag</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">allowGuestRegistration</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">requireApproval</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-eventbooking" data-connected-tables="events,venues,users,organizations">
+                <div class="table-header">
+                    <span>📅 Event Booking</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">bookingId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">venueId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizerId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">organizationId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">startDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">endDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">startTime</span>
+                        <span class="field-type">time</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">endTime</span>
+                        <span class="field-type">time</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">approvalStatus</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">notes</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">bookedAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">approvedRejectedAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">approvedRejectedByUserId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-eventresources" data-connected-tables="events,resources">
+                <div class="table-header">
+                    <span>🛠️ Event Resources</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">eventResourceId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">resourceId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">quantity</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">amountSpent</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">usageNotes</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">dateUsed</span>
+                        <span class="field-type">date</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table collapsed" id="table-resources" data-connected-tables="eventresources">
+                <div class="table-header">
+                    <span>📦 Resources</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">resourceId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">resourceName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">costPerUnit</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">resourceType</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">currentStock</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">supplier</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-registrations" data-connected-tables="events,users,tickettypes,invoices,payments,venues">
+                <div class="table-header">
+                    <span>📝 Registrations</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">registrationId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">userId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">buyerId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">boughtForIds</span>
+                        <div>
+                            <span class="field-type">string[]</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">["user123", "user456"]</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">ticketTypeId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">venueId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">noOfTickets</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">registrationDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentStatus</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">qrCode</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">checkDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">attended</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">totalCost</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">registrationStatus</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">invoiceId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">registeredAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">discountCodeUsed</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">specialRequests</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">newsletterOptIn</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">customFields</span>
+                        <div>
+                            <span class="field-type">json</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">{"dietary": "vegetarian", "accessibility": "wheelchair"}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-tickettypes" data-connected-tables="registrations,payments">
+                <div class="table-header">
+                    <span>🎫 Ticket Types</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">ticketTypeId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">ticketName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">price</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">ticketCategory</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">promoName</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">promoDescription</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">capacity</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">availableFrom</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">availableUntil</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isActive</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">minQuantity</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">maxQuantity</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">requiresVerification</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">perks</span>
+                        <div>
+                            <span class="field-type">json</span>
+                            <span class="add-icon">➕</span>
+                            <span class="field-tooltip">["VIP access", "Free merch"]</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">createdAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">updatedAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">deletedAt</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isRefundable</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">allowTransfers</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">redemptionInstructions</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">earlyBirdDetails</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-payments" data-connected-tables="registrations,invoices,users">
+                <div class="table-header">
+                    <span>💳 Payments</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">paymentId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">invoiceId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">registrationId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paidAmount</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentMethod</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentStatus</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">description</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">transactionFee</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">currency</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">transactionReference</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">receivedAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-invoices" data-connected-tables="events,users,registrations,payments">
+                <div class="table-header">
+                    <span>🧾 Invoices</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">invoiceId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">userId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">registrationId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">invoiceDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">dueDate</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">totalAmount</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">status</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">currency</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paymentTerms</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">billingAddress</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">taxDetails</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">paidAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table collapsed" id="table-feedback" data-connected-tables="events,users">
+                <div class="table-header">
+                    <span>💭 Feedback</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">feedbackId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">userId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">rating</span>
+                        <span class="field-type">int</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">comments</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">submittedAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isAnonymous</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">sentiment</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">responseToFeedback</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table collapsed" id="table-notifications" data-connected-tables="users,events">
+                <div class="table-header">
+                    <span>🔔 Notifications</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">notificationId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">userId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">message</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">sentAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isDisabled</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isRead</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">notificationType</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">readAt</span>
+                        <span class="field-type">timestamp</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">requiresAction</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table collapsed" id="table-budgets" data-connected-tables="events,users">
+                <div class="table-header">
+                    <span>💰 Budgets</span>
+                    <div class="table-header-controls">
+                        <button class="collapse-toggle-button">View More Fields</button>
+                        <span class="remove-table-icon" title="Temporarily remove table">🗑️</span>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <div class="field">
+                        <span class="field-name">budgetId</span>
+                        <div>
+                            <span class="pk">PK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">eventId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">expectedAmount</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">income</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">expenditure</span>
+                        <span class="field-type">float</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">notes</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">budgetCategory</span>
+                        <span class="field-type">varchar</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">lastUpdated</span>
+                        <span class="field-type">date</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">approvedByUserId</span>
+                        <div>
+                            <span class="fk">FK</span>
+                            <span class="field-type">string</span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-name">isApproved</span>
+                        <span class="field-type">boolean</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="relationships">
+            <div class="relationship-section">
+                <div class="relationship-title">Primary Relationships</div>
+                <div class="relationship-list">
+                    <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Roles</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">One role can be assigned to many users.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Organizations</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Users</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">One organization can have many users.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Events</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A user can organize many events.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Venues</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Events</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A venue can host many events.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">EventBooking</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event can have multiple bookings.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Venues</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">EventBooking</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A venue can be booked for multiple events.</div>
+                    </div>
+                     <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Registrations</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A user can have multiple registrations.</div>
+                    </div>
+                     <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Registrations</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event can have multiple registrations.</div>
+                    </div>
+                     <div class="relationship">
+                        <span class="rel-from">Ticket Types</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Registrations</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A ticket type can be associated with multiple registrations.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Registrations</span>
+                        <span class="rel-type">→ 1:1 →</span>
+                        <span class="rel-to">Invoices</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Each registration generates one invoice.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Invoices</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Payments</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">One invoice can have multiple payments.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Feedback</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event receives multiple feedback entries.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Feedback</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A user can give feedback for multiple events.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">EventResources</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event can use multiple resources.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Resources</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">EventResources</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A resource can be used in multiple event resource entries.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Notifications</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A user can receive many notifications.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Notifications</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event can trigger many notifications.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Events</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Budgets</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">An event can have multiple budget entries.</div>
+                    </div>
+                    <div class="relationship">
+                        <span class="rel-from">Users</span>
+                        <span class="rel-type">→ 1:M →</span>
+                        <span class="rel-to">Budgets</span>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">A user can approve/manage multiple budgets.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h3>🔍 Legend</h3>
+            <div class="legend-item">
+                <span class="pk">PK</span>
+                <span>Primary Key - Unique identifier for each record</span>
+            </div>
+            <div class="legend-item">
+                <span class="fk">FK</span>
+                <span>Foreign Key - References primary key in another table</span>
+            </div>
+            <div class="legend-item">
+                <span class="rel-type">1:M</span>
+                <span>One-to-Many Relationship</span>
+            </div>
+            <div class="legend-item">
+                <span class="rel-type">1:1</span>
+                <span>One-to-One Relationship</span>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3 style="color: #2c3e50; margin-bottom: 15px;">📊 Database Overview</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <strong style="color: #3498db;">Core Tables:</strong><br>
+                    <span style="color: #666;">14 Main Entities</span> 
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <strong style="color: #27ae60;">Relationships:</strong><r>
+                    <span style="color: #666;">20+ Connections</span> 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const erdContainer = document.getElementById('erdContainer');
+        const erdCanvas = document.getElementById('erdCanvas');
+        const ctx = erdCanvas.getContext('2d');
+        const tables = document.querySelectorAll('.table');
+        let showOnlyRelatedMode = false; // State for the new mode
+
+        let isDragging = false;
+        let activeTable = null;
+        let initialX, initialY; // Mouse position at start of drag
+        let xOffset = 0, yOffset = 0; // Offset from table's top-left to mouse click
+
+        // Store initial positions for reset
+        const initialTablePositions = {};
+
+        // Keep track of the currently open dropdown
+        let currentDropdown = null;
+        let isDropdownActive = false; // Flag to indicate if a dropdown is currently open
+        let activeDropdownTableId = null; // ID of the table that opened the dropdown
+        let selectedDropdownTableIds = new Set(); // Set to store IDs of tables selected via checkboxes
+        let temporarilyRemovedTableIds = new Set(); // Set to store IDs of tables temporarily removed
+
+        // Define a map for cardinalities
+        const relationshipMap = {
+            // User relationships
+            "users-roles": "1:M", // One role can have many users
+            "organizations-users": "1:M", // One organization can have many users
+            "users-events": "1:M", // One user can organize many events
+            "users-registrations": "1:M", // One user can have many registrations
+            "users-feedback": "1:M", // One user can give many feedback entries
+            "users-notifications": "1:M", // One user can receive many notifications
+            "users-budgets": "1:M", // One user can approve/manage many budgets
+            "users-payments": "1:M", // One user can make many payments (via registrations/invoices)
+            "users-invoices": "1:M", // One user can have many invoices
+
+            // Event relationships
+            "events-venues": "M:1", // Many events can be at one venue
+            "events-eventbooking": "1:M", // One event can have many bookings
+            "events-registrations": "1:M", // One event can have many registrations
+            "events-invoices": "1:M", // One event can have many invoices
+            "events-feedback": "1:M", // One event can receive many feedback entries
+            "events-eventresources": "1:M", // One event can use many event resources
+            "events-notifications": "1:M", // One event can trigger many notifications
+            "events-budgets": "1:M", // One event can have many budget entries
+            "events-organizations": "M:1", // Many events can belong to one organization
+
+            // Booking relationships
+            "eventbooking-venues": "M:1", // Many bookings for one venue
+            "eventbooking-organizations": "M:1", // Many bookings for one organization
+            "eventbooking-users": "M:1", // Many bookings approved/rejected by one user
+
+            // Registration relationships
+            "registrations-tickettypes": "M:1", // Many registrations for one ticket type
+            "registrations-invoices": "1:1", // One registration has one invoice
+            "registrations-payments": "1:M", // One registration can have multiple payments (e.g., partial payments)
+
+            // Invoice relationships
+            "invoices-payments": "1:M", // One invoice can have many payments
+
+            // Resource relationships
+            "eventresources-resources": "M:1", // Many event resources use one resource
+
+            // Reverse relationships (for easier lookup) - these are derived from the above for convenience
+            "roles-users": "M:1",
+            "users-organizations": "M:1",
+            "events-users": "M:1", // Events organized by users
+            "venues-users": "M:1", // Venues managed by users
+            "eventbooking-events": "M:1",
+            "eventbooking-venues": "M:1",
+            "registrations-events": "M:1",
+            "registrations-users": "M:1",
+            "registrations-tickettypes": "M:1",
+            "invoices-registrations": "1:1",
+            "payments-invoices": "M:1",
+            "feedback-events": "M:1",
+            "feedback-users": "M:1",
+            "eventresources-events": "M:1",
+            "eventresources-resources": "M:1",
+            "notifications-users": "M:1",
+            "notifications-events": "M:1",
+            "budgets-events": "M:1",
+            "budgets-users": "M:1",
+            "payments-registrations": "M:1",
+            "invoices-users": "M:1",
+            "invoices-events": "M:1",
+            "eventbooking-users": "M:1", // approvedRejectedByUserId
+            "organizations-events": "1:M", // One organization can have many events
+            "organizations-eventbooking": "1:M", // One organization can have many bookings
+            "venues-registrations": "1:M", // One venue can have many registrations (if registrations are tied to venue directly)
+        };
+
+        // Function to get cardinality
+        function getCardinality(sourceId, targetId) {
+            // Normalize IDs (remove 'table-')
+            const normalizedSource = sourceId.replace('table-', '');
+            const normalizedTarget = targetId.replace('table-', '');
+
+            // Check direct relationship
+            const directKey = `${normalizedSource}-${normalizedTarget}`;
+            if (relationshipMap[directKey]) {
+                return relationshipMap[directKey];
+            }
+
+            // Check reverse relationship and flip cardinality
+            const reverseKey = `${normalizedTarget}-${normalizedSource}`;
+            if (relationshipMap[reverseKey]) {
+                const [left, right] = relationshipMap[reverseKey].split(':');
+                return `${right}:${left}`;
+            }
+
+            return "N:N"; // Default if no specific cardinality is found
+        }
+
+        // Function to resize canvas to match the container's size
+        function resizeCanvas() {
+            const rect = erdContainer.getBoundingClientRect();
+            erdCanvas.width = rect.width;
+            erdCanvas.height = rect.height;
+            erdCanvas.style.top = `${erdContainer.offsetTop}px`;
+            erdCanvas.style.left = `${erdContainer.offsetLeft}px`;
+            drawRelationships(); // Redraw lines after resizing
+        }
+
+        // Function to draw all relationships on the canvas with Z-shape routing
+        function drawRelationships() {
+            ctx.clearRect(0, 0, erdCanvas.width, erdCanvas.height); // Clear previous lines
+
+            tables.forEach(sourceTable => {
+                if (sourceTable.classList.contains('hidden-by-filter')) {
+                    return; // Skip drawing lines for hidden tables
+                }
+
+                const connectedTables = sourceTable.dataset.connectedTables ? sourceTable.dataset.connectedTables.split(',') : [];
+                const sourceRect = sourceTable.getBoundingClientRect();
+                const sourceX = sourceRect.left + sourceRect.width / 2 - erdCanvas.getBoundingClientRect().left;
+                const sourceY = sourceRect.top + sourceRect.height / 2 - erdCanvas.getBoundingClientRect().top;
+
+                connectedTables.forEach(targetTableId => {
+                    const targetTable = document.getElementById(`table-${targetTableId}`);
+                    if (targetTable && !targetTable.classList.contains('hidden-by-filter')) { // Only draw if target is also visible
+                        const targetRect = targetTable.getBoundingClientRect();
+                        const targetX = targetRect.left + targetRect.width / 2 - erdCanvas.getBoundingClientRect().left;
+                        const targetY = targetRect.top + targetRect.height / 2 - erdCanvas.getBoundingClientRect().top;
+
+                        const isHighlighted = sourceTable.classList.contains('highlight-table') || targetTable.classList.contains('highlight-table');
+
+                        ctx.beginPath();
+                        ctx.moveTo(sourceX, sourceY);
+
+                        const dx = targetX - sourceX;
+                        const dy = targetY - sourceY;
+
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            ctx.lineTo(sourceX + dx / 2, sourceY);
+                            ctx.lineTo(sourceX + dx / 2, targetY);
+                        } else {
+                            ctx.lineTo(sourceX, sourceY + dy / 2);
+                            ctx.lineTo(targetX, sourceY + dy / 2);
+                        }
+                        ctx.lineTo(targetX, targetY);
+
+                        ctx.strokeStyle = isHighlighted ? '#e74c3c' : '#7f8c8d';
+                        ctx.lineWidth = isHighlighted ? 3 : 1.5;
+                        ctx.stroke();
+
+                        let lastSegmentStartX, lastSegmentStartY;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            lastSegmentStartX = sourceX + dx / 2;
+                            lastSegmentStartY = targetY;
+                        } else {
+                            lastSegmentStartX = targetX;
+                            lastSegmentStartY = sourceY + dy / 2;
+                        }
+                        
+                        const angle = Math.atan2(targetY - lastSegmentStartY, targetX - lastSegmentStartX);
+                        const arrowSize = isHighlighted ? 12 : 8;
+
+                        ctx.save();
+                        ctx.translate(targetX, targetY);
+                        ctx.rotate(angle);
+                        ctx.fillStyle = isHighlighted ? '#e74c3c' : '#7f8c8d';
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(-arrowSize, -arrowSize / 2);
+                        ctx.lineTo(-arrowSize, arrowSize / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+
+        // --- Visibility Management ---
+        function updateTableVisibility() {
+            tables.forEach(table => {
+                const tableId = table.id.replace('table-', '');
+                let shouldBeVisible = true; // Default to visible
+
+                // 1. Check for temporary removal (highest priority to hide)
+                if (temporarilyRemovedTableIds.has(tableId)) {
+                    shouldBeVisible = false;
+                }
+                
+                // 2. If not temporarily removed, apply dropdown specific visibility
+                else if (isDropdownActive) {
+                    // In dropdown mode, only the clicked table and selected connections are visible
+                    if (tableId !== activeDropdownTableId && !selectedDropdownTableIds.has(tableId)) {
+                        shouldBeVisible = false;
+                    }
+                } 
+                // 3. If dropdown is closed but a selection was made, persist that selection
+                else if (activeDropdownTableId !== null) { // This means a dropdown was active and now closed via its own button
+                    if (tableId !== activeDropdownTableId && !selectedDropdownTableIds.has(tableId)) {
+                        shouldBeVisible = false;
+                    }
+                }
+                // 4. If no dropdown is active/persisted, apply global 'show only related' mode
+                else if (showOnlyRelatedMode) {
+                    shouldBeVisible = false; // Hide all by default in this mode
+                    const hoveredTable = document.querySelector('.table:hover');
+                    if (hoveredTable && hoveredTable.id.replace('table-', '') === tableId) {
+                        shouldBeVisible = true; // Hovered table is visible
+                    }
+                    if (hoveredTable) {
+                        const connectedTables = hoveredTable.dataset.connectedTables ? hoveredTable.dataset.connectedTables.split(',') : [];
+                        if (connectedTables.includes(tableId)) {
+                            shouldBeVisible = true; // Connected tables are visible
+                        }
+                    }
+                }
+                // Else (neither dropdown active/persisted nor showOnlyRelatedMode), all tables are visible by default.
+
+                if (shouldBeVisible) {
+                    table.classList.remove('hidden-by-filter');
+                } else {
+                    table.classList.add('hidden-by-filter');
+                }
+            });
+            drawRelationships(); // Always redraw after visibility changes
+        }
+
+
+        // --- Drag and Drop Logic ---
+        function dragStart(e) {
+            // Prevent drag if clicking on controls within the header or dropdown
+            if (e.target.classList.contains('collapse-toggle-button') || 
+                e.target.classList.contains('remove-table-icon') ||
+                e.target.closest('.connections-dropdown')) {
+                return;
+            }
+            activeTable = this;
+            isDragging = true;
+
+            const rect = activeTable.getBoundingClientRect();
+            const containerRect = erdContainer.getBoundingClientRect();
+
+            // Calculate offset from mouse click to table's top-left corner
+            initialX = e.clientX;
+            initialY = e.clientY;
+            xOffset = e.clientX - (rect.left - containerRect.left);
+            yOffset = e.clientY - (rect.top - containerRect.top);
+
+            activeTable.style.cursor = 'grabbing';
+            activeTable.style.zIndex = 100; // Bring dragged table to front
+        }
+
+        function dragEnd(e) {
+            isDragging = false;
+            if (activeTable) {
+                activeTable.style.cursor = 'grab';
+                activeTable.style.zIndex = 10; // Reset z-index
+                activeTable = null;
+            }
+            drawRelationships(); // Redraw once dragging stops
+        }
+
+        function drag(e) {
+            if (!isDragging || !activeTable) return;
+
+            e.preventDefault(); // Prevent default browser drag behavior
+
+            const containerRect = erdContainer.getBoundingClientRect();
+
+            let newX = e.clientX - xOffset;
+            let newY = e.clientY - yOffset;
+
+            // Constrain movement within the container
+            newX = Math.max(0, Math.min(newX, containerRect.width - activeTable.offsetWidth));
+            newY = Math.max(0, Math.min(newY, containerRect.height - activeTable.offsetHeight));
+
+            activeTable.style.left = `${newX}px`;
+            activeTable.style.top = `${newY}px`;
+
+            drawRelationships(); // Redraw lines continuously during drag
+        }
+
+        // --- Collapse/Expand Logic and Remove Table Logic ---
+        tables.forEach(table => {
+            const header = table.querySelector('.table-header');
+            const collapseToggleButton = table.querySelector('.collapse-toggle-button');
+            const removeTableIcon = table.querySelector('.remove-table-icon');
+            
+            if (collapseToggleButton) {
+                collapseToggleButton.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Prevent drag from starting when clicking icon
+                    table.classList.toggle('collapsed');
+                    collapseToggleButton.textContent = table.classList.contains('collapsed') ? 'View More Fields' : 'View Fewer Fields';
+                    // Recalculate canvas height and re-position tables after collapse/expand
+                    setTimeout(() => {
+                        setInitialTablePositions(); // Re-layout all tables
+                        updateTableVisibility(); // Update visibility based on current mode
+                    }, 300); // Allow CSS transition to complete
+                });
+            }
+
+            if (removeTableIcon) {
+                removeTableIcon.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Prevent other table click events
+                    const tableId = table.id.replace('table-', '');
+                    temporarilyRemovedTableIds.add(tableId);
+                    // If a dropdown is active for this table, close it
+                    if (isDropdownActive && activeDropdownTableId === tableId) {
+                        closeCurrentDropdown(true); // Clear all filters when the source table is removed
+                    }
+                    updateTableVisibility();
+                });
+            }
+
+            // Add drag listeners to the header
+            header.addEventListener('mousedown', dragStart);
+            header.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent scrolling on touch
+                dragStart.call(header, e.touches[0]);
+            });
+
+            // Add click listener for the new dropdown
+            table.addEventListener('click', function(event) {
+                // Prevent dropdown from opening if dragging or clicking on controls
+                if (isDragging || event.target.classList.contains('collapse-toggle-button') || 
+                    event.target.classList.contains('remove-table-icon') ||
+                    event.target.classList.contains('add-icon')) {
+                    return;
+                }
+                event.stopPropagation(); // Prevent document click from closing immediately
+
+                // If a dropdown is already active for this table, close it
+                if (isDropdownActive && activeDropdownTableId === this.id.replace('table-', '')) {
+                    closeCurrentDropdown(true); // Close and clear filters if clicking the same table again
+                    return;
+                }
+
+                closeCurrentDropdown(true); // Explicitly clear all previous dropdown selections before opening a new one
+
+                const clickedTable = this;
+                activeDropdownTableId = clickedTable.id.replace('table-', '');
+                isDropdownActive = true;
+                selectedDropdownTableIds.clear(); // Clear previous selections for the new dropdown
+
+                const connectedTableIds = clickedTable.dataset.connectedTables ? clickedTable.dataset.connectedTables.split(',') : [];
+
+                if (connectedTableIds.length === 0) {
+                    // If no connections, just show this table and then close dropdown state
+                    updateTableVisibility();
+                    return; 
+                }
+
+                const dropdown = document.createElement('ul');
+                dropdown.classList.add('connections-dropdown');
+
+                // Create dropdown header
+                const dropdownHeader = document.createElement('div');
+                dropdownHeader.classList.add('dropdown-header');
+                const headerTitle = document.createElement('span');
+                headerTitle.textContent = `Connections for ${clickedTable.querySelector('.table-header span:first-child').textContent.trim()}`;
+                dropdownHeader.appendChild(headerTitle);
+
+                const closeIcon = document.createElement('span');
+                closeIcon.textContent = '✖'; // Unicode multiplication sign for 'X'
+                closeIcon.classList.add('dropdown-close-icon');
+                closeIcon.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent table click from re-opening dropdown
+                    closeCurrentDropdown(false); // Close but DO NOT clear filters, persist selection
+                });
+                dropdownHeader.appendChild(closeIcon);
+                dropdown.appendChild(dropdownHeader);
+
+
+                connectedTableIds.forEach(targetTableId => {
+                    const targetTable = document.getElementById(`table-${targetTableId}`);
+                    if (targetTable) {
+                        const listItem = document.createElement('li');
+                        const targetTableName = targetTable.querySelector('.table-header span:first-child').textContent.trim();
+                        const cardinality = getCardinality(clickedTable.id, targetTable.id);
+                        
+                        // Create checkbox and label
+                        const checkboxId = `checkbox-${clickedTable.id}-${targetTableId}`;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = checkboxId;
+                        checkbox.dataset.targetTableId = targetTableId; // Store target table ID
+
+                        const label = document.createElement('label');
+                        label.htmlFor = checkboxId;
+                        label.innerHTML = `<span>${targetTableName}</span> <span class="cardinality">${cardinality}</span>`;
+
+                        listItem.appendChild(checkbox);
+                        listItem.appendChild(label);
+                        dropdown.appendChild(listItem);
+
+                        // Add event listener for checkbox change
+                        checkbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                selectedDropdownTableIds.add(this.dataset.targetTableId);
+                            } else {
+                                selectedDropdownTableIds.delete(this.dataset.targetTableId);
+                            }
+                            updateTableVisibility(); // Update visibility based on selections
+                        });
+                    }
+                });
+
+                // Position the dropdown next to the clicked table
+                const tableRect = clickedTable.getBoundingClientRect();
+                const containerRect = erdContainer.getBoundingClientRect();
+
+                dropdown.style.left = `${tableRect.right - containerRect.left + 10}px`;
+                dropdown.style.top = `${tableRect.top - containerRect.top}px`;
+
+                erdContainer.appendChild(dropdown);
+                dropdown.classList.add('show');
+                currentDropdown = dropdown; // Store reference to the open dropdown
+
+                updateTableVisibility(); // Initial visibility update for dropdown mode
+            });
+        });
+
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                e.preventDefault(); // Prevent scrolling while dragging
+                drag(e.touches[0]);
+            }
+        });
+
+        // No global click listener to close dropdown on outside clicks, as per request.
+
+        function closeCurrentDropdown(clearAllFilters = false) {
+            if (currentDropdown) {
+                currentDropdown.classList.remove('show');
+                currentDropdown.addEventListener('transitionend', function handler() {
+                    currentDropdown.remove();
+                    currentDropdown.removeEventListener('transitionend', handler);
+                });
+                currentDropdown = null;
+                isDropdownActive = false; // Always set to false when dropdown closes
+
+                if (clearAllFilters) { // Only clear selections if explicitly told to (e.g., by opening a new dropdown or resetLayout)
+                    activeDropdownTableId = null;
+                    selectedDropdownTableIds.clear();
+                }
+                updateTableVisibility(); // Revert to global mode visibility or maintain selected state
+            }
+        }
+
+        // --- JSON/Enum Field Interaction ---
+        document.querySelectorAll('.field').forEach(field => {
+            const fieldTypeSpan = field.querySelector('.field-type');
+            if (fieldTypeSpan) {
+                const fieldTypeText = fieldTypeSpan.textContent.trim();
+                const isSpecialType = fieldTypeText === 'json' || fieldTypeText === 'enum' || fieldTypeText.endsWith('[]');
+
+                if (isSpecialType) {
+                    // Find or create the div containing type, add-icon, and tooltip
+                    let typeContainer = fieldTypeSpan.parentNode;
+                    // Ensure the parent is the correct container, or create one
+                    if (!typeContainer.classList.contains('field-type-container')) {
+                         const newTypeContainer = document.createElement('div');
+                         newTypeContainer.className = 'field-type-container';
+                         fieldTypeSpan.parentNode.insertBefore(newTypeContainer, fieldTypeSpan);
+                         newTypeContainer.appendChild(fieldTypeSpan);
+                         typeContainer = newTypeContainer;
+                    }
+
+                    let addIcon = typeContainer.querySelector('.add-icon');
+                    if (!addIcon) {
+                        addIcon = document.createElement('span');
+                        addIcon.className = 'add-icon';
+                        addIcon.textContent = '➕';
+                        typeContainer.appendChild(addIcon);
+                    }
+
+                    let tooltip = typeContainer.querySelector('.field-tooltip');
+                    if (!tooltip) {
+                        tooltip = document.createElement('span');
+                        tooltip.className = 'field-tooltip';
+                        typeContainer.appendChild(tooltip);
+                    }
+
+                    // Set initial tooltip content based on type
+                    if (fieldTypeText === 'json') {
+                        tooltip.textContent = '{"key": "value", ...}';
+                    } else if (fieldTypeText === 'enum') {
+                        // Use data-enum-values if present, otherwise default
+                        const initialValues = tooltip.dataset.enumValues ? JSON.parse(tooltip.dataset.enumValues) : ["Option1", "Option2"];
+                        tooltip.dataset.enumValues = JSON.stringify(initialValues); // Ensure data attribute is set
+                        tooltip.textContent = JSON.stringify(initialValues);
+                    } else if (fieldTypeText.endsWith('[]')) { // Array types
+                        tooltip.textContent = `[${fieldTypeText.replace('[]', '')}1, ${fieldTypeText.replace('[]', '')}2]`;
+                    }
+
+                    // Add click listener to the add icon for enum types
+                    if (fieldTypeText === 'enum') {
+                        addIcon.addEventListener('click', function(event) {
+                            event.stopPropagation(); // Prevent parent field hover/click effects
+                            const currentValues = JSON.parse(tooltip.dataset.enumValues || '[]');
+                            const newValue = prompt("Enter new enum value:");
+                            if (newValue && !currentValues.includes(newValue)) {
+                                currentValues.push(newValue);
+                                tooltip.dataset.enumValues = JSON.stringify(currentValues);
+                                tooltip.textContent = JSON.stringify(currentValues);
+                            } else if (newValue) {
+                                // Handle case where user tries to add existing value
+                                alert("Value already exists or input was empty.");
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+
+        // --- Initial Layout Positioning ---
+        function setInitialTablePositions() {
+            // Calculate available width for columns
+            const containerWidth = erdContainer.offsetWidth;
+            const tableWidth = 300; // Fixed table width
+            const gap = 40; // Gap between tables
+
+            // Determine number of columns based on container width
+            const numCols = Math.max(1, Math.floor(containerWidth / (tableWidth + gap)));
+            
+            let currentX = 0;
+            let currentY = 0;
+            let maxRowHeight = 0;
+            let colIndex = 0;
+
+            tables.forEach((table, index) => {
+                // If this is the first time setting positions, store them
+                if (!initialTablePositions[table.id]) {
+                    initialTablePositions[table.id] = { left: currentX, top: currentY };
+                }
+                // Always set position, even if it's a drag-and-dropped table,
+                // so that the layout calculation is based on current sizes.
+                // However, if the table has been manually dragged, we don't want to reset its position.
+                // This function is primarily for initial layout and after collapse/expand.
+                if (!table.dataset.isDragged) { // Only apply initial layout if not manually dragged
+                    table.style.left = `${currentX}px`;
+                    table.style.top = `${currentY}px`;
+                }
+                
+                // Get the actual rendered height of the table (collapsed or expanded)
+                // Use getBoundingClientRect().height for accurate current height
+                maxRowHeight = Math.max(maxRowHeight, table.getBoundingClientRect().height);
+
+                colIndex++;
+                if (colIndex >= numCols) {
+                    // Move to next row
+                    currentY += maxRowHeight + gap; // Add gap
+                    currentX = 0;
+                    maxRowHeight = 0; // Reset max height for the new row
+                    colIndex = 0;
+                } else {
+                    currentX += (tableWidth + gap);
+                }
+            });
+
+            // Adjust container height to fit all tables
+            erdContainer.style.height = `${currentY + maxRowHeight + 50}px`; // Add some padding
+        }
+
+        function resetLayout() {
+            tables.forEach(table => {
+                if (initialTablePositions[table.id]) {
+                    table.style.left = `${initialTablePositions[table.id].left}px`;
+                    table.style.top = `${initialTablePositions[table.id].top}px`;
+                }
+                // Ensure tables are expanded and visible on reset
+                table.classList.remove('collapsed');
+                table.classList.remove('hidden-by-filter');
+                table.dataset.isDragged = ''; // Clear dragged state
+                const collapseToggleButton = table.querySelector('.collapse-toggle-button');
+                if (collapseToggleButton) collapseToggleButton.textContent = 'View More Fields'; // Reset button text
+            });
+            showOnlyRelatedMode = false;
+            temporarilyRemovedTableIds.clear(); // Clear removed tables on reset
+            closeCurrentDropdown(true); // Ensure any active dropdown state is cleared
+            document.getElementById('toggleRelatedMode').textContent = 'Show Only Related Tables: OFF';
+            document.getElementById('toggleRelatedMode').classList.remove('active');
+            setInitialTablePositions(); // Re-run layout after reset
+            resizeCanvas(); // Redraw lines after reset
+        }
+        document.getElementById('resetLayout').addEventListener('click', resetLayout);
+
+
+        // Add event listeners for hover effect
+        tables.forEach(table => {
+            table.addEventListener('mouseover', function() {
+                // Only apply hover highlight if dropdown is not active
+                if (!isDropdownActive) {
+                    const hoveredTableId = this.id.replace('table-', '');
+                    const connectedTables = this.dataset.connectedTables ? this.dataset.connectedTables.split(',') : [];
+
+                    // Add highlight class to the hovered table
+                    this.classList.add('highlight-table');
+
+                    // Add highlight class to connected tables
+                    connectedTables.forEach(id => {
+                        const connectedTable = document.getElementById(`table-${id}`);
+                        if (connectedTable) {
+                            connectedTable.classList.add('highlight-table');
+                        }
+                    });
+
+                    // Update visibility based on global mode and hover
+                    updateTableVisibility();
+                }
+            });
+
+            table.addEventListener('mouseout', function() {
+                // Only remove highlights if dropdown is not active
+                if (!isDropdownActive) {
+                    const hoveredTableId = this.id.replace('table-', ''); 
+                    const connectedTables = this.dataset.connectedTables ? this.dataset.connectedTables.split(',') : [];
+
+                    // Remove highlight class from the hovered table
+                    this.classList.remove('highlight-table');
+
+                    // Remove highlight class from connected tables
+                    connectedTables.forEach(id => {
+                        const connectedTable = document.getElementById(`table-${id}`);
+                        if (connectedTable) {
+                            connectedTable.classList.remove('highlight-table');
+                        }
+                    });
+
+                    // Update visibility based on global mode (hover is gone)
+                    updateTableVisibility();
+                }
+            });
+        });
+
+        // Toggle button for "Show Only Related Tables" mode
+        const toggleButton = document.getElementById('toggleRelatedMode');
+        toggleButton.addEventListener('click', () => {
+            showOnlyRelatedMode = !showOnlyRelatedMode;
+            if (showOnlyRelatedMode) {
+                toggleButton.textContent = 'Show Only Related Tables: ON';
+                toggleButton.classList.add('active');
+            } else {
+                toggleButton.textContent = 'Show Only Related Tables: OFF';
+                toggleButton.classList.remove('active');
+            }
+            updateTableVisibility(); // Update visibility based on new mode
+        });
+
+        // Initial setup
+        window.onload = () => {
+            setInitialTablePositions(); // Position tables first
+            resizeCanvas(); // Then resize canvas and draw lines
+        };
+        window.onresize = resizeCanvas;
+    </script>
+</body>
+</html>

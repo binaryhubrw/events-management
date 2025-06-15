@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const TicketTypeController_1 = require("../controller/TicketTypeController");
+const router = (0, express_1.Router)();
+const ticketTypeController = new TicketTypeController_1.TicketTypeController();
+router.post("/", ticketTypeController.createTicketType.bind(ticketTypeController));
+router.get("/", ticketTypeController.getAllTicketTypes.bind(ticketTypeController));
+router.get("/:ticketTypeId", ticketTypeController.getTicketTypeById.bind(ticketTypeController));
+router.put("/:ticketTypeId", ticketTypeController.updateTicketType.bind(ticketTypeController));
+router.delete("/:ticketTypeId", ticketTypeController.deleteTicketType.bind(ticketTypeController));
+exports.default = router;
