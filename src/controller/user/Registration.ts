@@ -382,7 +382,8 @@ export class UserController {
         return;
       }
   
-      const { username, firstName, lastName, email, phoneNumber } = req.body;
+      const { username, firstName, lastName, email, phoneNumber,bio,
+        profilePictureUrl,emailNotifiacationsEnabled,dateOfBirth,gender,addressLine,city,stateProvince,country } = req.body;
   
       // Update user fields if they exist in the request
       if (username) user.username = username;
@@ -390,6 +391,15 @@ export class UserController {
       if (lastName) user.lastName = lastName;
       if (email) user.email = email;
       if (phoneNumber) user.phoneNumber = phoneNumber;
+      if (bio) user.bio = bio;
+      if (profilePictureUrl) user.profilePictureUrl = profilePictureUrl;
+      if (emailNotifiacationsEnabled) user.emailNotifiacationsEnabled = emailNotifiacationsEnabled;
+      if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+      if (addressLine) user.addressLine = addressLine;
+      if (gender) user.gender = gender;
+      if (city) user.city = city;
+      if (stateProvince) user.stateProvince = stateProvince;
+      if (country) user.country = country;
   
       const updatedUser = await userRepository.save(user);
   
@@ -403,6 +413,15 @@ export class UserController {
           lastName: updatedUser.lastName,
           email: updatedUser.email,
           phoneNumber: updatedUser.phoneNumber,
+          bio: updatedUser.bio,
+          profilePictureUrl: updatedUser.profilePictureUrl,
+          emailNotifiacationsEnabled: updatedUser.emailNotifiacationsEnabled,
+          dateOfBirth: updatedUser.dateOfBirth,
+          addressLine: updatedUser.addressLine,
+          city: updatedUser.city,
+          gender: updatedUser.gender,
+          stateProvince: updatedUser.stateProvince,
+          country: updatedUser.country,
           Role: updatedUser.role
             ? {
                 RoleID: updatedUser.role.roleId,

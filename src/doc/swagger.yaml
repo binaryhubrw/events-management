@@ -1,8 +1,14 @@
 openapi: 3.0.0
 info:
-  title: Event Management API
+  title: Events Management API
   version: 1.0.0
-  description: API documentation for the Event Management System
+  description: |
+    API documentation for Events Management System.
+    Includes endpoints for:
+    - User Management
+    - Event Management
+    - Venue Management
+    - Booking Management
 
 servers:
   - url: /api/v1
@@ -16,61 +22,471 @@ components:
       bearerFormat: JWT
 
   schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Error message
+
+    UserRegistration:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+
+    UserLogin:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "johndoe"
+        password:
+          type: string
+          format: password
+          example: "password123"
+
+    DefaultPasswordLogin:
+      type: object
+      required:
+        - username
+        - defaultPassword
+      properties:
+        username:
+          type: string
+          example: "johndoe"
+        defaultPassword:
+          type: string
+          example: "default123"
+
+    ResetPassword:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: "current123"
+        newPassword:
+          type: string
+          format: password
+          example: "newpassword123"
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    ForgotPasswordReset:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          example: "reset-token-123"
+        newPassword:
+          type: string
+          format: password
+          example: "newpassword123"
+
+    RoleAssignment:
+      type: object
+      required:
+        - roleId
+      properties:
+        roleId:
+          type: string
+          example: "role123"
+
     User:
       type: object
       properties:
         id:
           type: string
+          example: "user123"
         username:
           type: string
+          example: "johndoe"
         email:
           type: string
-        role:
+          format: email
+          example: "john@example.com"
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["user", "admin"]
+        createdAt:
           type: string
-        organization:
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
           type: string
-        profile:
-          type: object
-          properties:
-            firstName:
-              type: string
-            lastName:
-              type: string
-            phone:
-              type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
 
-    Error:
+    UserUpdate:
       type: object
       properties:
-        message:
+        username:
           type: string
-        status:
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "newpassword123"
+
+    Venue:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "venue123"
+        name:
+          type: string
+          example: "Grand Ballroom"
+        capacity:
           type: integer
+          example: 500
+        location:
+          type: string
+          example: "123 Main Street, City"
+        description:
+          type: string
+          example: "A beautiful venue with modern amenities"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["Parking", "Catering", "WiFi"]
+        images:
+          type: array
+          items:
+            type: string
+          example: ["venue1.jpg", "venue2.jpg"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "event123"
+        title:
+          type: string
+          example: "Annual Conference"
+        description:
+          type: string
+          example: "A conference about technology and innovation"
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        venueId:
+          type: string
+          example: "venue123"
+        organizerId:
+          type: string
+          example: "user123"
+        status:
+          type: string
+          enum: [draft, published, cancelled]
+          example: "published"
+        capacity:
+          type: integer
+          example: 500
+        price:
+          type: number
+          example: 99.99
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    EventCreate:
+      type: object
+      required:
+        - title
+        - description
+        - startDate
+        - endDate
+        - venueId
+        - capacity
+        - price
+      properties:
+        title:
+          type: string
+          example: "Annual Conference"
+        description:
+          type: string
+          example: "A conference about technology and innovation"
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        venueId:
+          type: string
+          example: "venue123"
+        capacity:
+          type: integer
+          example: 500
+        price:
+          type: number
+          example: 99.99
+        status:
+          type: string
+          enum: [draft, published, cancelled]
+          example: "draft"
+
+    EventUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          example: "Annual Conference 2024"
+        description:
+          type: string
+          example: "Updated conference description"
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        venueId:
+          type: string
+          example: "venue123"
+        capacity:
+          type: integer
+          example: 500
+        price:
+          type: number
+          example: 99.99
+        status:
+          type: string
+          enum: [draft, published, cancelled]
+          example: "published"
+
+    VenueCreate:
+      type: object
+      required:
+        - name
+        - location
+        - capacity
+      properties:
+        name:
+          type: string
+          example: "Grand Ballroom"
+        location:
+          type: string
+          example: "123 Main Street, City"
+        capacity:
+          type: integer
+          example: 500
+        description:
+          type: string
+          example: "A beautiful venue with modern amenities"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["Parking", "Catering", "WiFi"]
+        images:
+          type: array
+          items:
+            type: string
+          example: ["venue1.jpg", "venue2.jpg"]
+
+    VenueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Grand Ballroom"
+        location:
+          type: string
+          example: "456 New Street, City"
+        capacity:
+          type: integer
+          example: 600
+        description:
+          type: string
+          example: "Updated venue description"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["Parking", "Catering", "WiFi", "AV Equipment"]
+        images:
+          type: array
+          items:
+            type: string
+          example: ["venue1.jpg", "venue2.jpg", "venue3.jpg"]
+
+    VenueBooking:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "booking123"
+        eventId:
+          type: string
+          example: "event123"
+        venueId:
+          type: string
+          example: "venue123"
+        organizerId:
+          type: string
+          example: "user123"
+        organizationId:
+          type: string
+          example: "org123"
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+          example: "approved"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    VenueBookingCreate:
+      type: object
+      required:
+        - eventId
+        - venueId
+        - startDate
+        - endDate
+      properties:
+        eventId:
+          type: string
+          example: "event123"
+        venueId:
+          type: string
+          example: "venue123"
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        notes:
+          type: string
+          example: "Special setup requirements"
+
+    VenueBookingUpdate:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-03-02T17:00:00Z"
+        notes:
+          type: string
+          example: "Updated setup requirements"
 
 paths:
+  # User Management Routes
   /users/register:
     post:
-      tags:
-        - Users
       summary: Register a new user
+      description: Create a new user account
+      tags: [Users]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                email:
-                  type: string
-                password:
-                  type: string
+              $ref: '#/components/schemas/UserRegistration'
       responses:
         '201':
           description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User registered successfully"
+                  user:
+                    $ref: '#/components/schemas/User'
         '400':
-          description: Invalid input
+          description: Invalid input data
           content:
             application/json:
               schema:
@@ -78,20 +494,15 @@ paths:
 
   /users/login:
     post:
-      tags:
-        - Users
       summary: Login user
+      description: Authenticate user and get access token
+      tags: [Users]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                password:
-                  type: string
+              $ref: '#/components/schemas/UserLogin'
       responses:
         '200':
           description: Login successful
@@ -102,16 +513,225 @@ paths:
                 properties:
                   token:
                     type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   user:
                     $ref: '#/components/schemas/User'
         '401':
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/default-login-password:
+    post:
+      summary: Login with default password
+      description: Login using default password (for first-time users)
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefaultPasswordLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/reset-password:
+    post:
+      summary: Reset default password
+      description: Change user's default password
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/request-forget-password-link:
+    post:
+      summary: Request password reset link
+      description: Send password reset link to user's email
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset link sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password reset link sent to your email"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/forget-password:
+    post:
+      summary: Reset password using forgot password link
+      description: Reset password using the token from email
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordReset'
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+        '400':
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/assign-role:
+    post:
+      summary: Assign default role to user
+      description: Assign a default role to a user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignment'
+      responses:
+        '200':
+          description: Role assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Role assigned successfully"
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/role:
+    post:
+      summary: Update user's assigned role
+      description: Update the role of a specific user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "user123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignment'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Role updated successfully"
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users/profile:
     get:
-      tags:
-        - Users
       summary: Get user profile
+      description: Get the profile of the authenticated user
+      tags: [Users]
       security:
         - bearerAuth: []
       responses:
@@ -120,15 +740,68 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                    $ref: '#/components/schemas/User'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update user profile
+      description: Update the profile of the authenticated user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      summary: Get all users
+      description: Retrieve a list of all users
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users/{id}:
     get:
-      tags:
-        - Users
       summary: Get user by ID
+      description: Retrieve a specific user by their ID
+      tags: [Users]
       security:
         - bearerAuth: []
       parameters:
@@ -137,168 +810,1312 @@ paths:
           required: true
           schema:
             type: string
+          example: "user123"
       responses:
         '200':
           description: User retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                    $ref: '#/components/schemas/User'
         '404':
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /organizations:
-    get:
-      tags:
-        - Organizations
-      summary: Get all organizations
+    put:
+      summary: Update user
+      description: Update a specific user's information
+      tags: [Users]
       security:
         - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "user123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
       responses:
         '200':
-          description: List of organizations
+          description: User updated successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    description:
-                      type: string
-
-  /venue:
-    get:
-      tags:
-        - Venues
-      summary: Get all venues
-      responses:
-        '200':
-          description: List of venues
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    capacity:
-                      type: integer
-                    location:
-                      type: string
+                $ref: '#/components/schemas/Error'
 
-  /event:
+    delete:
+      summary: Delete user
+      description: Delete a specific user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "user123"
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Event Management Routes
+  /event/all:
     get:
-      tags:
-        - Events
       summary: Get all events
+      description: Retrieve a list of all events
+      tags: [Events]
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: List of events
+          description: List of events retrieved successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    title:
-                      type: string
-                    description:
-                      type: string
-                    startDate:
-                      type: string
-                      format: date-time
-                    endDate:
-                      type: string
-                      format: date-time
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /event-bookings:
-    post:
-      tags:
-        - Event Bookings
-      summary: Create a new event booking
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                eventId:
-                  type: string
-                venueId:
-                  type: string
-                startDate:
-                  type: string
-                  format: date-time
-                endDate:
-                  type: string
-                  format: date-time
-      responses:
-        '201':
-          description: Booking created successfully
-        '400':
-          description: Invalid input
-
-  /registrations:
-    post:
-      tags:
-        - Registrations
-      summary: Register for an event
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                eventId:
-                  type: string
-                userId:
-                  type: string
-                ticketTypeId:
-                  type: string
-      responses:
-        '201':
-          description: Registration successful
-        '400':
-          description: Invalid input
-
-  /tickets:
+  /event/get/{id}:
     get:
-      tags:
-        - Tickets
-      summary: Get all ticket types
+      summary: Get event by ID
+      description: Retrieve a specific event by its ID
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "event123"
       responses:
         '200':
-          description: List of ticket types
+          description: Event details retrieved successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    price:
-                      type: number
-                    description:
-                      type: string
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event/getByOrgizerId:
+    get:
+      summary: Get events by organizer ID
+      description: Retrieve all events created by a specific organizer
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of organizer's events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event/create:
+    post:
+      summary: Create a new event
+      description: Create a new event with the provided details
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreate'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event/update/{id}:
+    put:
+      summary: Update an event
+      description: Update an existing event by its ID
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "event123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventUpdate'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event/delete/{id}:
+    delete:
+      summary: Delete an event
+      description: Delete an event by its ID
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "event123"
+      responses:
+        '200':
+          description: Event deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Event deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Venue Management Routes
+  /venue/all:
+    get:
+      summary: Get all venues
+      description: Retrieve a list of all venues
+      tags: [Venues]
+      responses:
+        '200':
+          description: List of venues retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Venue'
+
+  /venue/get/{id}:
+    get:
+      summary: Get venue by ID
+      description: Retrieve a specific venue by its ID
+      tags: [Venues]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      responses:
+        '200':
+          description: Venue details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Venue'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/search:
+    get:
+      summary: Search venues
+      description: Search for venues based on various criteria
+      tags: [Venues]
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+          example: "Grand Ballroom"
+        - name: location
+          in: query
+          schema:
+            type: string
+          example: "New York"
+        - name: minCapacity
+          in: query
+          schema:
+            type: integer
+          example: 100
+        - name: maxCapacity
+          in: query
+          schema:
+            type: integer
+          example: 500
+        - name: isAvailable
+          in: query
+          schema:
+            type: boolean
+          example: true
+        - name: hasManager
+          in: query
+          schema:
+            type: boolean
+          example: true
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Venue'
+
+  /venue/count:
+    get:
+      summary: Get venue count
+      description: Get the total count of active venues
+      tags: [Venues]
+      responses:
+        '200':
+          description: Venue count retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 50
+
+  /venue/check-availability/{id}:
+    get:
+      summary: Check venue availability
+      description: Check a specific venue's availability for a given date range
+      tags: [Venues]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2024-03-01"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2024-03-02"
+      responses:
+        '200':
+          description: Venue availability information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  available:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Venue is available for the selected dates"
+
+  /venue/add:
+    post:
+      summary: Create a new venue
+      description: Create a new venue with the provided details
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueCreate'
+      responses:
+        '201':
+          description: Venue created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Venue'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/manager-venues:
+    get:
+      summary: Get venues managed by authenticated user
+      description: Retrieve all venues managed by the currently authenticated user
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of managed venues retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Venue'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/update/{id}:
+    put:
+      summary: Update a venue
+      description: Update an existing venue by its ID
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueUpdate'
+      responses:
+        '200':
+          description: Venue updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Venue'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/set-availability/{id}:
+    put:
+      summary: Set venue availability
+      description: Set the general availability status of a venue
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Venue availability updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Venue availability updated successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/remove/{id}:
+    delete:
+      summary: Delete a venue
+      description: Soft-delete a venue by its ID
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      responses:
+        '200':
+          description: Venue deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Venue deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/update-manager/{id}:
+    put:
+      summary: Update venue manager
+      description: Update the manager of a specific venue (Admin only)
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - managerId
+              properties:
+                managerId:
+                  type: string
+                  example: "user123"
+      responses:
+        '200':
+          description: Venue manager updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Venue manager updated successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /venue/remove-manager/{id}:
+    put:
+      summary: Remove venue manager
+      description: Remove the manager from a specific venue (Admin only)
+      tags: [Venues]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      responses:
+        '200':
+          description: Venue manager removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Venue manager removed successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Venue Booking Routes
+  /event-bookings/create:
+    post:
+      summary: Create a new venue booking
+      description: Create a new booking for a venue
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueBookingCreate'
+      responses:
+        '201':
+          description: Venue booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/VenueBooking'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/all:
+    get:
+      summary: Get all venue bookings
+      description: Retrieve a list of all venue bookings
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of venue bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/date-range:
+    get:
+      summary: Get bookings by date range
+      description: Retrieve venue bookings within a specific date range
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2024-03-01"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2024-03-02"
+      responses:
+        '200':
+          description: Venue bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/event/{eventId}:
+    get:
+      summary: Get bookings by event ID
+      description: Retrieve all venue bookings for a specific event
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "event123"
+      responses:
+        '200':
+          description: Event bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/venue/{venueId}:
+    get:
+      summary: Get bookings by venue ID
+      description: Retrieve all bookings for a specific venue
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: venueId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "venue123"
+      responses:
+        '200':
+          description: Venue bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Venue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/organizer:
+    get:
+      summary: Get bookings by organizer
+      description: Retrieve all bookings made by the authenticated organizer
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Organizer's bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/organization/{organizationId}:
+    get:
+      summary: Get bookings by organization
+      description: Retrieve all bookings for a specific organization
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "org123"
+      responses:
+        '200':
+          description: Organization's bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/status/{status}:
+    get:
+      summary: Get bookings by status
+      description: Retrieve all bookings with a specific status
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+          example: "approved"
+      responses:
+        '200':
+          description: Bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VenueBooking'
+        '400':
+          description: Invalid status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/{id}:
+    get:
+      summary: Get booking by ID
+      description: Retrieve a specific venue booking by its ID
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "booking123"
+      responses:
+        '200':
+          description: Booking details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/VenueBooking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update a booking
+      description: Update an existing venue booking
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "booking123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueBookingUpdate'
+      responses:
+        '200':
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/VenueBooking'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete a booking
+      description: Delete a venue booking
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "booking123"
+      responses:
+        '200':
+          description: Booking deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Booking deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event-bookings/{id}/status:
+    patch:
+      summary: Update booking status
+      description: Update only the status of a venue booking
+      tags: [Venue Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "booking123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, approved, rejected, cancelled]
+                  example: "approved"
+      responses:
+        '200':
+          description: Booking status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/VenueBooking'
+        '400':
+          description: Invalid status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

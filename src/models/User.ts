@@ -44,6 +44,53 @@ export class User {
   @IsPhoneNumber()
   phoneNumber?: string;
 
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  profilePictureUrl?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  emailNotifiacationsEnabled?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  dateOfBirth?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  addressLine?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  stateProvince?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  
+
   @ManyToOne(() => Role, role => role.users) // Adjusted to Many-to-One
   role!: Role;
 

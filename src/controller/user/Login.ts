@@ -228,6 +228,21 @@ static async login(req: Request, res: Response): Promise<void> {
                     email: user.email,
                     username: user.username,
                     roles: user.roles,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    phoneNumber: user.phoneNumber,
+                    gender: user.gender,
+                    bio: user.bio,
+                    profilePictureUrl: user.profilePictureUrl,
+                    emailNotifiacationsEnabled: user.emailNotifiacationsEnabled,
+                    dateOfBirth: user.dateOfBirth,
+                    addressLine: user.addressLine,
+                    city: user.city,
+                    stateProvince: user.stateProvince,
+                    country: user.country,
+                     
+          
+          
                     // You're mapping `organizationId` to `organizationId` which is redundant here.
                     // It should just be `organizations: organizations` if you want the full array of objects.
                     organizations: organizations, // Send full organization details
