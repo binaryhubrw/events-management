@@ -228,7 +228,7 @@ static async login(req: Request, res: Response): Promise<void> {
                     userId: user.userId,
                     email: user.email,
                     username: user.username,
-                    roles: user.roles,
+                    Role: user.role,
                     firstName: user.firstName,
                     lastName: user.lastName,
                     phoneNumber: user.phoneNumber,
