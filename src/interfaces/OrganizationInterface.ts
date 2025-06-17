@@ -3,12 +3,12 @@ import { UserInterface } from './UserInterface';
 export class OrganizationInterface {
   organizationId!: string;
   organizationName!: string;
-  description!: string;
+  description?: string;
   contactEmail!: string;
   contactPhone?: string;
-  isExternal!: boolean;
-  address!: string;
-  organizationType!: string;
+  isExternal?: boolean;
+  address?: string;
+  organizationType?: string;
   user?: UserInterface;
   createdAt!: Date;
   updatedAt!: Date;
@@ -35,7 +35,6 @@ export class OrganizationInterface {
     const errors: string[] = [];
     if (!data.organizationName) errors.push('organizationName is required');
     if (!data.contactEmail) errors.push('contactEmail is required');
-    if (!data.address) errors.push('address is required');
     return errors;
   }
 }

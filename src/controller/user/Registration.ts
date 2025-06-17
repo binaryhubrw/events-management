@@ -6,10 +6,13 @@ import PasswordService from "../../services/emails/EmailService";
 import { Organization } from "../../models/Organization";
 import { Role } from "../../models/Role";
 import bcrypt from "bcryptjs";
+import {OrganizationInterface} from '../../interfaces/OrganizationInterface';
 
 export class UserController {
   static async register(req: Request, res: Response): Promise<void> {
     try {
+      
+      console.log("hjssjsjsksywtyuuiw");
       const { username, firstName, lastName, email, phoneNumber,password,confirmPassword } = req.body;
       console.log("Registering user with data in controller:", req.body);
 
@@ -112,6 +115,8 @@ export class UserController {
         return;
       }
 
+     
+
       // === Assign Default Role ===
       const roleRepository = AppDataSource.getRepository(Role);
       const guestRole = await roleRepository.findOne({
@@ -128,24 +133,24 @@ export class UserController {
         return;
       }
 
+      // Create user with organization
       const user = UserRepository.createUser({
         username: username,
         firstName: firstName,
         lastName: lastName,
         email: email,
         phoneNumber: phoneNumber,
-        //password is optional, if not provided
-        password: hashedPassword, // Use the hashed password
-        // Set a default password or generate one dynamically
-       role: {
-  roleId: guestRole.roleId,
-  roleName: guestRole.roleName,
-  permissions: guestRole.permissions || [],
-  createdAt: guestRole.createdAt ? new Date(guestRole.createdAt) : new Date(),
-  updatedAt: guestRole.updatedAt ? new Date(guestRole.updatedAt) : new Date(),
-}, // Map Role to RoleInterface
+        password: hashedPassword,
+        role: {
+          roleId: guestRole.roleId,
+          roleName: guestRole.roleName,
+          permissions: guestRole.permissions || [],
+          createdAt: guestRole.createdAt ? new Date(guestRole.createdAt) : new Date(),
+          updatedAt: guestRole.updatedAt ? new Date(guestRole.updatedAt) : new Date(),
+        }
       });
 
+      // Save user first
       const result = await UserRepository.saveUser(user);
 
       if (!result.user) {
@@ -158,15 +163,59 @@ export class UserController {
         return;
       }
 
-      const savedUser = result.user;
+      // === Create Personal Organization ===
+      const orgRepo = AppDataSource.getRepository(Organization);
+      let personalOrg;
+      try {
+        personalOrg = orgRepo.create({
+          organizationName: `${firstName} ${lastName}'s Organization`,
+          description: `Personal organization for ${username}`,
+          contactEmail: email,
+          contactPhone: phoneNumber || "",
+          address: "Not provided",
+          organizationType: "USER",
+          user: result.user
+        });
+        personalOrg = await orgRepo.save(personalOrg);
+        if (!personalOrg) {
+          throw new Error("Failed to save organization");
+        }
+        console.log("Personal organization created successfully");
+      } catch (err) {
+        console.error("Error creating personal organization:", err);
+        // Delete the user since organization creation failed
+        await UserRepository.deleteUser(result.user.userId);
+        res.status(500).json({
+          success: false,
+          message: "Registration failed: Could not create default organization. Please try again."
+        });
+        return;
+      }
+
+      // Fetch the complete user data with organizations
+      const userRepository = AppDataSource.getRepository(User);
+      const completeUser = await userRepository.findOne({
+        where: { userId: result.user.userId },
+        relations: ['role', 'organizations']
+      });
+
+      if (!completeUser || !completeUser.organizations || completeUser.organizations.length === 0) {
+        // Delete the user since organization association failed
+        await UserRepository.deleteUser(result.user.userId);
+        res.status(500).json({
+          success: false,
+          message: "Registration failed: Could not associate user with organization. Please try again."
+        });
+        return;
+      }
 
       // === Send Default Password Email ===
       try {
         const emailSent = await PasswordService.sendDefaultPassword(
           email,
-          savedUser.lastName,
-          savedUser.firstName,
-          savedUser.username,
+          completeUser.lastName,
+          completeUser.firstName,
+          completeUser.username,
           req
         );
 
@@ -174,32 +223,40 @@ export class UserController {
           console.warn(
             `Failed to send email to ${email}, but user was created successfully`
           );
-          // Continue with registration despite email failure
         }
       } catch (emailError) {
         console.error("Error sending welcome email:", emailError);
-        // Continue with registration despite email failure
       }
 
+      // Format and send response
       res.status(201).json({
         success: true,
-        message:
-          "User registered successfully. If email is configured correctly, a default password was sent.",
+        message: "User registered successfully. If email is configured correctly, a default password was sent.",
         user: {
-          id: savedUser.userId,
-          username: savedUser.username,
-          email: savedUser.email,
-          firstName: savedUser.firstName,
-          lastName: savedUser.lastName,
-          phoneNumber: savedUser.phoneNumber,
-
-          Role: {
-            RoleID: guestRole.roleId,
-            RoleName: guestRole.roleName,
-            Permissions: guestRole.permissions || [],
-          }, // Map Role to RoleInterface
-        },
+          id: completeUser.userId,
+          username: completeUser.username,
+          email: completeUser.email,
+          firstName: completeUser.firstName,
+          lastName: completeUser.lastName,
+          phoneNumber: completeUser.phoneNumber,
+          Role: completeUser.role ? {
+            RoleID: completeUser.role.roleId,
+            RoleName: completeUser.role.roleName,
+            Permissions: completeUser.role.permissions || []
+          } : null,
+          organizations: completeUser.organizations?.map(org => ({
+            organizationId: org.organizationId,
+            organizationName: org.organizationName,
+            description: org.description || "",
+            contactEmail: org.contactEmail,
+            contactPhone: org.contactPhone || "",
+            address: org.address || "",
+            organizationType: org.organizationType || ""
+          })) || []
+        }
       });
+
+
     } catch (error) {
       console.error("Error in register:", error);
       res

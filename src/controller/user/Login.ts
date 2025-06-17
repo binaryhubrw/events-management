@@ -131,7 +131,7 @@ static async login(req: Request, res: Response): Promise<void> {
             // Find user by email or username, including organizations
             const user = await userRepository.findOne({
                 where: [{ email: identifier }, { username: identifier }],
-                relations: ["organizations","role"] // Eager load organizations
+                relations: ["role", 'organizations'] // Eager load organizations
             });
 
             if (!user) {
@@ -170,7 +170,8 @@ static async login(req: Request, res: Response): Promise<void> {
 
             // Ensure organizations exist before generating token
             if (!user.organizations || user.organizations.length === 0) {
-                console.log(`[Login Attempt] User ID: ${user.userId} (${identifier}) - Not associated with any organization.`); // Log for missing organization
+                console.log(`[Login Attempt] User ID: ${user.userId} (${identifier}) - Not associated with any organization.`);
+                console.log(user) // Log for missing organization
                 res.status(401).json({
                     success: false,
                     message: "Unauthorized: User is not associated with any organization."

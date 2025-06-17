@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { NextFunction, Router } from 'express';
 import { UserController } from '../controller/user/Registration'; 
 import { LoginController } from '../controller/user/Login'; 
 import ResetPassword from '../controller/user/ResetDefaultPassword';

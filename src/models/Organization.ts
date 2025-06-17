@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { IsUUID, IsNotEmpty, IsOptional, Length, IsEmail, IsPhoneNumber } from 'class-validator';
 import { Event } from './Event';
 import { User } from './User';
@@ -39,6 +39,12 @@ export class Organization {
   @IsOptional()
   @Length(0, 50)
   organizationType?: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 
   // @OneToMany(() => Event, (event) => event.organizationId)
   // events!: Event[];
